@@ -29,5 +29,5 @@ class Utilities {
   //console.log(timeDiffCalc(new Date('2019/10/1 04:10:00 PM'), new Date('2019/10/2 18:20:00 AM')));
 }
 
-var util = new Utilities();
-export default util;
+var dateUtil = new Utilities();
+export default dateUtil;

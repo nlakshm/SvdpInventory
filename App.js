@@ -19,12 +19,11 @@ const AppNavigation = () => {
         initialRouteName="home"
       >
         <Stack.Screen name="home" component={CategoryScreen} />
-        <Stack.Screen name="AddCategoryScreen" component={AddCategoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
 
 export default function App() {
-  return <AppNavigation />;
+  return <AddCategoryScreen />;
 }

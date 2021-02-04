@@ -1,20 +1,25 @@
-import util from "../Utilities/dateUtil";
+import dateUtil from "../Utilities/dateUtil";
+import imageUtil from "../Utilities/ImageUtil";
 import Singleton from "../Database/FirebaseSingleton";
 class CategoryComponent {
   constructor() {}
 
-  add() {}
+  add(category) {
+    imageUtil.uriToBlob(category.imageURI).then((file) => {
+      Singleton.getInstance().ref("sampletest").put(file);
+    });
+  }
 
   delete(category, stateRef) {
     if (category.totalItems == 0) {
-      var ref = Singleton.getInstance().ref("cats");
+      var ref = Singleton.getInstance().ref("categories");
       ref.once("value").then(function (snapshot) {
         if (
           snapshot.exists() &&
           snapshot.child("cat-" + String(category.id)).exists()
         ) {
           Singleton.getInstance()
-            .ref("cats/cat-" + String(category.id))
+            .ref("categories/cat-" + String(category.id))
             .remove()
             .then(function () {
               stateRef.setState({
@@ -71,7 +76,7 @@ class CategoryComponent {
 
   getLastUpdatedTime(datePrev) {
     let dateNow = new Date().toLocaleString();
-    dateNow = util.formatLocaleDateString(dateNow);
+    dateNow = dateUtil.formatLocaleDateString(dateNow);
     rs = util.timeDiffCalc(dateNow, datePrev);
     return rs["days"] != 0
       ? String(rs["days"]) + "d"
