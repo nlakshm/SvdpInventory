@@ -2,6 +2,8 @@ import Firebase from "firebase";
 
 var Singleton = (function () {
   var instance;
+  var databaseInstance;
+  var storageInstance;
   /*
   var config = {
     authDomain: "svdp-62877.firebaseapp.com",
@@ -18,16 +20,28 @@ var Singleton = (function () {
   };
 
   function createInstance() {
-    let object = Firebase.initializeApp(config).storage();
+    let object = Firebase.initializeApp(config);
     return object;
   }
 
   return {
-    getInstance: function () {
+    getDatabaseInstance: function () {
       if (!instance) {
         instance = createInstance();
       }
-      return instance;
+      if (!databaseInstance) {
+        databaseInstance = instance.database();
+      }
+      return databaseInstance;
+    },
+    getStorageInstance: function () {
+      if (!instance) {
+        instance = createInstance();
+      }
+      if (!storageInstance) {
+        storageInstance = instance.storage();
+      }
+      return storageInstance;
     },
   };
 })();

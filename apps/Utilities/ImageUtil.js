@@ -1,5 +1,7 @@
 class ImageUtilities {
   uriToBlob(uri) {
+    console.log("error converting image to blob");
+    console.log(uri);
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.onload = function () {

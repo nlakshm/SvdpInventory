@@ -3,6 +3,8 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { SafeAreaView } from "react-native";
 import React, { useState, useEffect } from "react";
 import categoryComponent from "../Components/CategoryComponent";
+import DropDownPicker from "react-native-dropdown-picker";
+
 import {
   StyleSheet,
   Button,
@@ -17,8 +19,15 @@ class AddCategoryScreen extends React.Component {
   state = {
     imageURI: "",
     categoryName: "",
+    dropdownSelectedItem: "",
+    dropdownItems: [{ label: "None", value: "" }],
+    message: "",
+    isError: false,
   };
-  componentDidMount() {
+
+  componentDidMount = () => {
+    this.mounted = true;
+    categoryComponent.fetchPreLoadedImageItems(this);
     (async () => {
       if (Platform.OS !== "web") {
         console.log("Requesting camera permissions");
@@ -29,7 +38,11 @@ class AddCategoryScreen extends React.Component {
         }
       }
     })();
-  }
+  };
+
+  componentWillUnmount = () => {
+    this.mounted = false;
+  };
 
   pickImage = async () => {
     let result = await ImagePicker.launchCameraAsync({
@@ -50,6 +63,10 @@ class AddCategoryScreen extends React.Component {
   handleCategoryText = (text) => {
     this.setState({ categoryName: text });
   };
+
+  handleDropDownText(event) {
+    this.setState({ value: event.target.value });
+  }
 
   render() {
     return (
@@ -72,6 +89,23 @@ class AddCategoryScreen extends React.Component {
             style={{ width: 200, height: 200 }}
           />
         )}
+        <Text>Please select a pre-loaded image</Text>
+
+        <DropDownPicker
+          items={this.state.dropdownItems}
+          defaultValue={this.state.dropdownSelectedItem}
+          containerStyle={{ height: 40, width: "70%" }}
+          style={{ backgroundColor: "#fafafa" }}
+          itemStyle={{
+            justifyContent: "flex-start",
+          }}
+          dropDownStyle={{ backgroundColor: "#fafafa" }}
+          onChangeItem={(item) => {
+            this.setState({
+              dropdownSelectedItem: item.value,
+            });
+          }}
+        />
 
         <Button title="submit" onPress={this.submitForm} />
       </SafeAreaView>
