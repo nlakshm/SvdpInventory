@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "donewithit",
-    "slug": "donewithit",
+    "name": "svdp",
+    "slug": "svdp",
     "version": "1.0.0",
     "orientation": "portrait",
     "splash": {
@@ -11,7 +11,9 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -20,6 +22,7 @@
         "backgroundColor": "#FFFFFF"
       }
     },
-    "web": {}
+    "web": {},
+    "description": "Test"
   }
 }

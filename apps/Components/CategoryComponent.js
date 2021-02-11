@@ -5,7 +5,7 @@ import Firebase from "firebase";
 class CategoryComponent {
   constructor() {}
 
-  getPrimaryKey(category) {
+  getPrimaryKey(category, stateRef) {
     Singleton.getDatabaseInstance()
       .ref("/categories/primary-key")
       .once("value")
@@ -14,11 +14,11 @@ class CategoryComponent {
         Singleton.getDatabaseInstance()
           .ref("/categories/primary-key")
           .set(primary_key);
-        this.addCategoryMetaDataToFirebase(primary_key, category);
+        this.addCategoryMetaDataToFirebase(primary_key, category, stateRef);
       });
   }
 
-  addCategoryMetaDataToFirebase(primary_key, category) {
+  addCategoryMetaDataToFirebase(primary_key, category, stateRef) {
     console.log("adding new category meta data to firebase");
     category["totalQuantity"] = 0;
     category["lastUpdatedTime"] = "";
@@ -28,31 +28,44 @@ class CategoryComponent {
       .set(category)
       .then(function () {
         console.log("successfully uploaded");
+        stateRef.setState({
+          message: "successfully uploaded data to database",
+          isError: false,
+        });
       })
       .catch(function () {
         console.log("error uploading metadata to firebase");
       });
   }
-  checkAddConstraints(category) {
+  checkAddConstraints(category, stateRef) {
     console.log(category);
     let imageURILength = category.imageURI.length;
     let dropdownSelectedItemLength = category.dropdownSelectedItem.length;
-
-    if (category.categoryName.length == 0) {
-      console.log("please enter a category name");
+    let trimmedName = category.categoryName.trim();
+    if (trimmedName.length == 0) {
+      stateRef.setState({
+        message: "please enter a name",
+        isError: true,
+      });
       return false;
     }
     if (imageURILength == 0 && dropdownSelectedItemLength == 0) {
-      console.log("Please select atleast one option");
+      stateRef.setState({
+        message: "pick an image or select from drop down",
+        isError: true,
+      });
       return false;
     } else if (imageURILength > 0 && dropdownSelectedItemLength > 0) {
-      console.log("Please select one option");
+      stateRef.setState({
+        message: "do not select both options",
+        isError: true,
+      });
       return false;
     }
     return true;
   }
 
-  uploadImage(category) {
+  uploadImage(category, stateRef) {
     imageUtil.uriToBlob(category.imageURI).then((file) => {
       var uploadTask = Singleton.getStorageInstance()
         .ref(category.categoryName)
@@ -68,7 +81,10 @@ class CategoryComponent {
               console.log("Upload is paused");
               break;
             case Firebase.storage.TaskState.RUNNING:
-              console.log("Upload is running");
+              stateRef.setState({
+                message: "uploading image " + progress,
+                isError: false,
+              });
               break;
           }
         },
@@ -76,17 +92,20 @@ class CategoryComponent {
         () => {
           uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
             category["downloadURL"] = downloadURL;
-            this.getPrimaryKey({
-              name: category.categoryName,
-              downloadURL: category.downloadURL,
-            });
+            this.getPrimaryKey(
+              {
+                name: category.categoryName,
+                downloadURL: category.downloadURL,
+              },
+              stateRef
+            );
           });
         }
       );
     });
   }
 
-  getPreLoadedImageURI(category) {
+  getPreLoadedImageURI(category, stateRef) {
     try {
       Singleton.getDatabaseInstance()
         .ref("/preloaded-images/" + category.dropdownSelectedItem)
@@ -94,22 +113,24 @@ class CategoryComponent {
         .then((snapshot) => {
           category["downloadURL"] = snapshot.val();
 
-          this.getPrimaryKey({
-            name: category.categoryName,
-            downloadURL: category.downloadURL,
-          });
+          this.getPrimaryKey(
+            {
+              name: category.categoryName,
+              downloadURL: category.downloadURL,
+            },
+            stateRef
+          );
           console.log(category);
         });
     } catch (error) {}
   }
 
-  add(category) {
-    console.log(this.checkAddConstraints(category));
-    if (this.checkAddConstraints(category)) {
+  add(category, stateRef) {
+    if (this.checkAddConstraints(category, stateRef)) {
       if (category.imageURI.length > 0) {
-        this.uploadImage(category);
+        this.uploadImage(category, stateRef);
       } else {
-        this.getPreLoadedImageURI(category);
+        this.getPreLoadedImageURI(category, stateRef);
       }
     }
   }
@@ -194,7 +215,7 @@ class CategoryComponent {
             console.log(stateRef.state.dropdownItems);
             stateRef.setState({
               dropdownItems: stateRef.state.dropdownItems.concat(resultSet),
-              message: "data retrieved successfully",
+              message: "drop down data retrieved successfully",
               isError: false,
             });
           } else {
@@ -208,7 +229,7 @@ class CategoryComponent {
     } catch (error) {
       console.log("inside erro fetch pre loaded images");
       stateRef.setState({
-        message: "error fetching category data " + error,
+        message: "error fetching drop down data " + error,
         isError: false,
       });
     }
