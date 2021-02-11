@@ -28,7 +28,9 @@ class AddCategoryScreen extends React.Component {
 
   componentDidMount = () => {
     this.mounted = true;
+
     categoryComponent.fetchPreLoadedImageItems(this);
+
     (async () => {
       if (Platform.OS !== "web") {
         console.log("Requesting camera permissions");

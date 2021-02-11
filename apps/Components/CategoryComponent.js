@@ -171,9 +171,31 @@ class CategoryComponent {
     }
   }
 
+  deleteImage(category, stateRef) {
+    console.log("inside image delete");
+    console.log(category);
+    try {
+      Singleton.getStorageInstance()
+        .ref(category.name)
+        .delete()
+        .then(function () {
+          stateRef.setState({
+            message: "successfully deleted image file",
+            isError: false,
+          });
+        });
+    } catch (error) {
+      console.log(error);
+      stateRef.setState({
+        message: "unsuccessfull delete",
+        isError: true,
+      });
+    }
+  }
+
   delete(category, stateRef) {
     console.log("inside delete");
-    console.log(category);
+    this.deleteImage(category, stateRef);
     if (category.totalItems == 0) {
       var ref = Singleton.getDatabaseInstance().ref("categories");
       ref.once("value").then(function (snapshot) {
@@ -181,7 +203,7 @@ class CategoryComponent {
           Singleton.getDatabaseInstance()
             .ref("categories/" + String(category.id))
             .remove()
-            .then(function () {
+            .then(() => {
               stateRef.setState({
                 message: "successfully deleted",
                 isError: false,
@@ -221,8 +243,9 @@ class CategoryComponent {
             });
           } else {
             stateRef.setState({
-              message: "component not available/ reference error",
+              message: "component ! available/ empty category list",
               isError: true,
+              categories: {},
             });
           }
         });
