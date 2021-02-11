@@ -16,14 +16,15 @@ const AppNavigation = () => {
         screenOptions={{
           headerShown: false,
         }}
-        initialRouteName="home"
+        initialRouteName="Home"
       >
-        <Stack.Screen name="home" component={CategoryScreen} />
+        <Stack.Screen name="Home" component={CategoryScreen} />
+        <Stack.Screen name="AddCategoryScreen" component={AddCategoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
 
 export default function App() {
-  return <AddCategoryScreen />;
+  return <AppNavigation />;
 }

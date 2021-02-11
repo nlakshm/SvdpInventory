@@ -37,7 +37,7 @@ class CategoryScreen extends React.Component {
       <View key={category.id} style={styles.categoryComponentWrapper}>
         <View style={styles.categoryPictureWrapper}>
           <Image
-            source={{ uri: category.imageURI }}
+            source={{ uri: category.downloadURL }}
             //source={require("./assets/leafy.png")}
             style={styles.categoryPicture}
           />
@@ -100,7 +100,6 @@ class CategoryScreen extends React.Component {
               categoryComponent.getLastUpdatedTime(
                 category.lastUpdatedTime
               )}{" "}
-            ago
           </Text>
         </View>
       </View>

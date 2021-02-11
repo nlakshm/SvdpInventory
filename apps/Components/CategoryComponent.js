@@ -6,22 +6,38 @@ class CategoryComponent {
   constructor() {}
 
   getPrimaryKey(category, stateRef) {
-    Singleton.getDatabaseInstance()
-      .ref("/categories/primary-key")
-      .once("value")
-      .then((snapshot) => {
-        let primary_key = snapshot.val() + 1;
-        Singleton.getDatabaseInstance()
-          .ref("/categories/primary-key")
-          .set(primary_key);
-        this.addCategoryMetaDataToFirebase(primary_key, category, stateRef);
+    try {
+      Singleton.getDatabaseInstance()
+        .ref("/categories-primary-key")
+        .once("value")
+        .then((snapshot) => {
+          let primary_key = snapshot.val() + 1;
+          Singleton.getDatabaseInstance()
+            .ref("/categories-primary-key")
+            .set(primary_key)
+            .then(() => {
+              this.addCategoryMetaDataToFirebase(
+                primary_key,
+                category,
+                stateRef
+              );
+            });
+        });
+    } catch (error) {
+      stateRef.setState({
+        message: "error getting primary key",
+        isError: false,
+        isSubmitButtonEnabled: true,
       });
+    }
   }
 
   addCategoryMetaDataToFirebase(primary_key, category, stateRef) {
     console.log("adding new category meta data to firebase");
     category["totalQuantity"] = 0;
     category["lastUpdatedTime"] = "";
+    category["id"] = primary_key;
+    category["totalItems"] = 0;
 
     Singleton.getDatabaseInstance()
       .ref("/categories/" + primary_key)
@@ -31,10 +47,18 @@ class CategoryComponent {
         stateRef.setState({
           message: "successfully uploaded data to database",
           isError: false,
+          isSubmitButtonEnabled: true,
+          categoryName: "",
+          imageURI: "",
         });
       })
       .catch(function () {
         console.log("error uploading metadata to firebase");
+        stateRef.setState({
+          message: "error uploading metadata to firebase",
+          isError: false,
+          isSubmitButtonEnabled: true,
+        });
       });
   }
   checkAddConstraints(category, stateRef) {
@@ -46,6 +70,7 @@ class CategoryComponent {
       stateRef.setState({
         message: "please enter a name",
         isError: true,
+        isSubmitButtonEnabled: true,
       });
       return false;
     }
@@ -53,12 +78,14 @@ class CategoryComponent {
       stateRef.setState({
         message: "pick an image or select from drop down",
         isError: true,
+        isSubmitButtonEnabled: true,
       });
       return false;
     } else if (imageURILength > 0 && dropdownSelectedItemLength > 0) {
       stateRef.setState({
         message: "do not select both options",
         isError: true,
+        isSubmitButtonEnabled: true,
       });
       return false;
     }
@@ -77,9 +104,6 @@ class CategoryComponent {
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log("Upload is " + progress + "% done");
           switch (snapshot.state) {
-            case Firebase.storage.TaskState.PAUSED:
-              console.log("Upload is paused");
-              break;
             case Firebase.storage.TaskState.RUNNING:
               stateRef.setState({
                 message: "uploading image " + progress,
@@ -88,7 +112,13 @@ class CategoryComponent {
               break;
           }
         },
-        (error) => {},
+        (error) => {
+          stateRef.setState({
+            message: "error uploading image ",
+            isError: false,
+            isSubmitButtonEnabled: true,
+          });
+        },
         () => {
           uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
             category["downloadURL"] = downloadURL;
@@ -122,7 +152,13 @@ class CategoryComponent {
           );
           console.log(category);
         });
-    } catch (error) {}
+    } catch (error) {
+      stateRef.setState({
+        message: "error getting preloaded image URI",
+        isError: true,
+        isSubmitButtonEnabled: true,
+      });
+    }
   }
 
   add(category, stateRef) {
@@ -136,15 +172,14 @@ class CategoryComponent {
   }
 
   delete(category, stateRef) {
+    console.log("inside delete");
+    console.log(category);
     if (category.totalItems == 0) {
-      var ref = Singleton.getInstance().ref("categories");
+      var ref = Singleton.getDatabaseInstance().ref("categories");
       ref.once("value").then(function (snapshot) {
-        if (
-          snapshot.exists() &&
-          snapshot.child("cat-" + String(category.id)).exists()
-        ) {
-          Singleton.getInstance()
-            .ref("categories/cat-" + String(category.id))
+        if (snapshot.exists() && snapshot.child(String(category.id)).exists()) {
+          Singleton.getDatabaseInstance()
+            .ref("categories/" + String(category.id))
             .remove()
             .then(function () {
               stateRef.setState({
@@ -238,13 +273,16 @@ class CategoryComponent {
   getLastUpdatedTime(datePrev) {
     let dateNow = new Date().toLocaleString();
     dateNow = dateUtil.formatLocaleDateString(dateNow);
-    rs = util.timeDiffCalc(dateNow, datePrev);
+    rs = dateUtil.timeDiffCalc(dateNow, datePrev);
+    if (isNaN(rs)) {
+      return "NA";
+    }
     return rs["days"] != 0
-      ? String(rs["days"]) + "d"
+      ? String(rs["days"]) + "d ago"
       : rs["hours"] != 0
-      ? String(rs["hours"]) + "h"
+      ? String(rs["hours"]) + "h ago"
       : rs["minutes"] != 0
-      ? String(rs["minutes"]) + "m"
+      ? String(rs["minutes"]) + "m ago"
       : "";
   }
 }

@@ -23,6 +23,7 @@ class AddCategoryScreen extends React.Component {
     dropdownItems: [{ label: "None", value: "" }],
     message: "form loaded successfully",
     isError: false,
+    isSubmitButtonEnabled: true,
   };
 
   componentDidMount = () => {
@@ -58,7 +59,10 @@ class AddCategoryScreen extends React.Component {
   };
 
   submitForm = () => {
-    categoryComponent.add(this.state, this);
+    if (this.state.isSubmitButtonEnabled) {
+      this.setState({ isSubmitButtonEnabled: false });
+      categoryComponent.add(this.state, this);
+    }
   };
   handleCategoryText = (text) => {
     this.setState({ categoryName: text });
@@ -72,9 +76,9 @@ class AddCategoryScreen extends React.Component {
       imageURI: "",
       categoryName: "",
       dropdownSelectedItem: "",
-      dropdownItems: [{ label: "None", value: "" }],
       message: "",
       isError: false,
+      isSubmitButtonEnabled: true,
     });
   };
 
@@ -112,9 +116,7 @@ class AddCategoryScreen extends React.Component {
           <View style={styles.categoryHeaderIconWrapper}>
             <Icon
               name="arrow-left"
-              onPress={() =>
-                this.props.navigation.navigate("AddCategoryScreen")
-              }
+              onPress={() => this.props.navigation.navigate("Home")}
               style={styles.categoryHeaderIcon}
             />
           </View>
@@ -175,14 +177,11 @@ class AddCategoryScreen extends React.Component {
             }}
           />
           <View
-            style={{
-              justifyContent: "center",
-              alignItems: "center",
-              // backgroundColor: "#2f52a4",
-              backgroundColor: "#d3d3d3",
-              marginTop: "5%",
-              width: "50%",
-            }}
+            style={[
+              this.state.isSubmitButtonEnabled
+                ? styles.submitButtonEnabled
+                : styles.submitButtonDisabled,
+            ]}
           >
             <Text
               style={{
@@ -214,6 +213,21 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: "5%",
   },
+  submitButtonEnabled: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#2f52a4",
+    marginTop: "5%",
+    width: "50%",
+  },
+  submitButtonDisabled: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#898989",
+    marginTop: "5%",
+    width: "50%",
+  },
+
   input: {
     margin: 15,
     height: 40,
