@@ -126,6 +126,7 @@ class CategoryComponent {
               {
                 name: category.categoryName,
                 downloadURL: category.downloadURL,
+                dropdown: "",
               },
               stateRef
             );
@@ -147,6 +148,7 @@ class CategoryComponent {
             {
               name: category.categoryName,
               downloadURL: category.downloadURL,
+              dropdown: category.dropdownSelectedItem,
             },
             stateRef
           );
@@ -171,6 +173,11 @@ class CategoryComponent {
     }
   }
 
+  async edit(category, stateRef) {
+    await this.delete(category, stateRef);
+    this.add(category, stateRef);
+  }
+
   deleteImage(category, stateRef) {
     console.log("inside image delete");
     console.log(category);
@@ -193,8 +200,9 @@ class CategoryComponent {
     }
   }
 
-  delete(category, stateRef) {
+  async delete(category, stateRef) {
     console.log("inside delete");
+    console.log(category);
     this.deleteImage(category, stateRef);
     if (category.totalItems == 0) {
       var ref = Singleton.getDatabaseInstance().ref("categories");

@@ -24,10 +24,31 @@ class AddCategoryScreen extends React.Component {
     message: "form loaded successfully",
     isError: false,
     isSubmitButtonEnabled: true,
+    operation: "",
+    id: -1,
+  };
+
+  modifyStateBasedOnOperation = () => {
+    console.log("modify based on state");
+    let operation = this.props.route.params.operation;
+    let stateDct = {};
+    if (operation == "edit") {
+      let data = this.props.route.params.data;
+      stateDct["categoryName"] = data.name;
+
+      stateDct["id"] = data.id;
+      stateDct["dropdownSelectedItem"] = data.dropdown;
+      if (data.dropdown.length == 0) {
+        stateDct["imageURI"] = data.downloadURL;
+      }
+    }
+    stateDct["operation"] = operation;
+    this.setState(stateDct);
   };
 
   componentDidMount = () => {
     this.mounted = true;
+    this.modifyStateBasedOnOperation();
 
     categoryComponent.fetchPreLoadedImageItems(this);
 
@@ -47,6 +68,10 @@ class AddCategoryScreen extends React.Component {
     this.mounted = false;
   };
 
+  deletePickedImage = () => {
+    this.setState({ imageURI: "" });
+  };
+
   pickImage = async () => {
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -61,9 +86,18 @@ class AddCategoryScreen extends React.Component {
   };
 
   submitForm = () => {
+    console.log("submiting form edit/add");
     if (this.state.isSubmitButtonEnabled) {
       this.setState({ isSubmitButtonEnabled: false });
-      categoryComponent.add(this.state, this);
+      console.log(this.state);
+      if (this.state.operation == "add") {
+        categoryComponent.add(this.state, this);
+      } else {
+        console.log("edit option enabled");
+        console.log("edit option for id" + this.state);
+        let z = Object.assign({}, this.state, this.props.route.params.data);
+        categoryComponent.edit(z, this);
+      }
     }
   };
   handleCategoryText = (text) => {
@@ -112,6 +146,8 @@ class AddCategoryScreen extends React.Component {
   };
 
   render() {
+    console.log("state after mount");
+    console.log(this.state);
     return (
       <SafeAreaView style={styles.categoryScreenWrapper}>
         <View style={styles.categoryHeaderWrapper}>
@@ -147,10 +183,17 @@ class AddCategoryScreen extends React.Component {
           />
 
           {this.state.imageURI.length > 0 ? (
-            <Image
-              source={{ uri: this.state.imageURI }}
-              style={{ width: 200, height: 200 }}
-            />
+            <React.Fragment>
+              <Image
+                source={{ uri: this.state.imageURI }}
+                style={{ width: 200, height: 200 }}
+              />
+              <Icon
+                name="minus-circle"
+                style={styles.deleteIcon}
+                onPress={this.deletePickedImage}
+              />
+            </React.Fragment>
           ) : (
             <Icon
               name="camera"
@@ -165,7 +208,6 @@ class AddCategoryScreen extends React.Component {
 
           <DropDownPicker
             items={this.state.dropdownItems}
-            defaultValue={this.state.dropdownSelectedItem}
             containerStyle={{ height: 45, width: "100%", marginTop: "5%" }}
             style={{ backgroundColor: "#fafafa" }}
             itemStyle={{
@@ -177,6 +219,11 @@ class AddCategoryScreen extends React.Component {
                 dropdownSelectedItem: item.value,
               });
             }}
+            placeholder={
+              this.state.dropdownSelectedItem.length > 0
+                ? this.state.dropdownSelectedItem
+                : "Please select an item from the dropdown"
+            }
           />
           <View
             style={[
@@ -374,6 +421,11 @@ const styles = StyleSheet.create({
     //color: "#939393",
     color: "#808080",
     marginTop: "5%",
+  },
+  deleteIcon: {
+    fontSize: 35,
+    //color: "#939393",
+    color: "red",
   },
   categoryToastMessage: {
     flexDirection: "row",

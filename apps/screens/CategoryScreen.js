@@ -69,7 +69,16 @@ class CategoryScreen extends React.Component {
               height: "30%",
             }}
           >
-            <Icon name="edit" style={styles.categoryDetailsIcon} />
+            <Icon
+              name="edit"
+              onPress={() =>
+                this.props.navigation.navigate("AddCategoryScreen", {
+                  data: category,
+                  operation: "edit",
+                })
+              }
+              style={styles.categoryDetailsIcon}
+            />
 
             <Icon
               name="times-circle"
@@ -164,7 +173,9 @@ class CategoryScreen extends React.Component {
             <Icon
               name="plus"
               onPress={() =>
-                this.props.navigation.navigate("AddCategoryScreen")
+                this.props.navigation.navigate("AddCategoryScreen", {
+                  operation: "add",
+                })
               }
               style={styles.categoryHeaderIcon}
             />
