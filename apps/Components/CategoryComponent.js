@@ -32,6 +32,29 @@ class CategoryComponent {
     }
   }
 
+  updateCategory(category, stateRef) {
+    Singleton.getDatabaseInstance()
+      .ref("/categories/" + category.id)
+      .update(category)
+      .then(function () {
+        stateRef.setState({
+          message: "successfully updated data to database",
+          isError: false,
+          isSubmitButtonEnabled: true,
+          categoryName: "",
+          imageURI: "",
+        });
+      })
+      .catch(function () {
+        console.log("error updating metadata to firebase");
+        stateRef.setState({
+          message: "error updating metadata to firebase",
+          isError: false,
+          isSubmitButtonEnabled: true,
+        });
+      });
+  }
+
   addCategoryMetaDataToFirebase(primary_key, category, stateRef) {
     console.log("adding new category meta data to firebase");
     category["totalQuantity"] = 0;
@@ -304,17 +327,19 @@ class CategoryComponent {
   getLastUpdatedTime(datePrev) {
     let dateNow = new Date().toLocaleString();
     dateNow = dateUtil.formatLocaleDateString(dateNow);
-    rs = dateUtil.timeDiffCalc(dateNow, datePrev);
-    if (isNaN(rs)) {
+    if (datePrev.length == 0) {
       return "NA";
     }
+
+    rs = dateUtil.timeDiffCalc(dateNow, datePrev);
+
     return rs["days"] != 0
       ? String(rs["days"]) + "d ago"
       : rs["hours"] != 0
       ? String(rs["hours"]) + "h ago"
       : rs["minutes"] != 0
       ? String(rs["minutes"]) + "m ago"
-      : "";
+      : "1m ago";
   }
 }
 

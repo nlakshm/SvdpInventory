@@ -101,6 +101,11 @@ class CategoryScreen extends React.Component {
 
             <Icon
               name="arrow-circle-right"
+              onPress={() =>
+                this.props.navigation.navigate("SubCategoryScreen", {
+                  data: category,
+                })
+              }
               style={styles.categoryDetailsIcon}
             />
           </View>
