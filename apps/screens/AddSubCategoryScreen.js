@@ -36,17 +36,45 @@ class AddSubCategoryScreen extends React.Component {
     operation: "",
     date: new Date(),
     currentDate: "",
+    id: -1,
+    isSubCategoryChanged: false,
+    isSubCategoryImageURIChanged: false,
+    isPreloadedItem: false,
+    initialQuantity: 0,
+    editName: "",
   };
 
   modifyStateBasedOnOperation = () => {
     console.log("modify based on state");
     let operation = this.props.route.params.operation;
     let stateDct = {};
-
+    stateDct["operation"] = operation;
     if (operation == "edit") {
+      let subCategory = this.props.route.params.data;
+      data = {};
+      data["id"] = subCategory.categoryId;
+      data["name"] = subCategory.category;
+
+      stateDct["category"] = data;
+      stateDct["id"] = subCategory.id;
+      stateDct["dropdownSelectedLocationItem"] = subCategory.location;
+      stateDct["totalQuantity"] = subCategory.totalQuantity;
+      stateDct["date"] = new Date(subCategory.lastUpdatedTime);
+      stateDct["downloadURL"] = subCategory.downloadURL;
+      stateDct["name"] = subCategory.name;
+      stateDct["isPreloadedItem"] = subCategory.isPreloadedItem;
+      stateDct["initialQuantity"] = subCategory.totalQuantity;
+
+      if (!subCategory.isPreloadedItem) {
+        stateDct["imageURI"] = subCategory.downloadURL;
+        stateDct["editName"] = subCategory.name;
+      } else {
+        stateDct["dropdownSelectedSubCategoryItem"] = subCategory.name;
+      }
+
+      stateDct["operation"] = operation;
     } else if (operation == "add") {
       stateDct["category"] = this.props.route.params.category;
-      stateDct["operation"] = operation;
     }
 
     this.setState(stateDct);
@@ -88,7 +116,10 @@ class AddSubCategoryScreen extends React.Component {
     });
 
     if (!result.cancelled) {
-      this.setState({ imageURI: result.uri });
+      this.setState({
+        imageURI: result.uri,
+        isSubCategoryImageURIChanged: true,
+      });
     }
   };
 
@@ -96,10 +127,10 @@ class AddSubCategoryScreen extends React.Component {
     console.log("submiting form edit/add");
     if (this.state.isSubmitButtonEnabled) {
       this.setState({ isSubmitButtonEnabled: false });
-      console.log(this.state);
       if (this.state.operation == "add") {
         subCategoryComponent.add(this.state, this);
       } else {
+        subCategoryComponent.edit(this.state, this);
       }
     }
   };
@@ -111,19 +142,23 @@ class AddSubCategoryScreen extends React.Component {
   handleQuantityText = (text) => {
     console.log(text);
     var numbers = /^[0-9]+$/;
-    if (text.length > 0) {
-      if (text.match(numbers)) {
-        this.setState({
-          totalQuantity: text,
-          message: "",
-          isError: false,
-        });
-      } else {
-        this.setState({
-          message: "Please enter numbers ony in quantity",
-          isError: true,
-        });
-      }
+
+    if (text.match(numbers)) {
+      this.setState({
+        totalQuantity: text,
+        message: "",
+        isError: false,
+      });
+    } else if (text.length != 0) {
+      this.setState({
+        message: "Please enter numbers ony in quantity",
+        isError: true,
+        totalQuantity: "",
+      });
+    } else {
+      this.setState({
+        totalQuantity: "",
+      });
     }
   };
 
@@ -139,7 +174,7 @@ class AddSubCategoryScreen extends React.Component {
   };
 
   handleDropDownText(event) {
-    this.setState({ value: event.target.value });
+    this.setState({ value: event.target.value, isSubCategoryChanged: true });
   }
   handleReset = () => {
     this.setState({
@@ -231,6 +266,7 @@ class AddSubCategoryScreen extends React.Component {
             onChangeItem={(item) => {
               this.setState({
                 dropdownSelectedSubCategoryItem: item.value,
+                isSubCategoryChanged: true,
               });
             }}
             placeholder={
@@ -282,16 +318,6 @@ class AddSubCategoryScreen extends React.Component {
           <Text style={{ fontSize: 16, width: "100%", marginTop: 5 }}>
             Pick the date of expiry
           </Text>
-          <DateTimePicker
-            testID="dateTimePicker"
-            value={this.state.date}
-            is24Hour={true}
-            style={{ width: "100%", height: 150, fontSize: 16 }}
-            display="spinner"
-            mode="date"
-            is24Hour={true}
-            onChange={this.onChange}
-          />
 
           <DropDownPicker
             items={this.state.dropdownLocationItems}

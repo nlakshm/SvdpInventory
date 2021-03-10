@@ -8,36 +8,38 @@ class SubCategoryComponent {
   constructor() {}
 
   getPrimaryKey(subCategory, stateRef) {
-    try {
-      Singleton.getDatabaseInstance()
-        .ref("/sub-categories-primary-key")
-        .once("value")
-        .then((snapshot) => {
-          let primary_key = snapshot.val() + 1;
-          Singleton.getDatabaseInstance()
-            .ref("/sub-categories-primary-key")
-            .set(primary_key)
-            .then(() => {
-              this.addSubCategoryMetaDataToFirebase(
-                primary_key,
-                subCategory,
-                stateRef
-              );
-            });
+    if (subCategory.id != -1) {
+      this.updateSubCategoryMetaDataToFirebase(subCategory, stateRef);
+    } else {
+      try {
+        Singleton.getDatabaseInstance()
+          .ref("/sub-categories-primary-key")
+          .once("value")
+          .then((snapshot) => {
+            let primary_key = snapshot.val() + 1;
+            Singleton.getDatabaseInstance()
+              .ref("/sub-categories-primary-key")
+              .set(primary_key)
+              .then(() => {
+                this.addSubCategoryMetaDataToFirebase(
+                  primary_key,
+                  subCategory,
+                  stateRef
+                );
+              });
+          });
+      } catch (error) {
+        stateRef.setState({
+          message: "error getting primary key",
+          isError: false,
+          isSubmitButtonEnabled: true,
         });
-    } catch (error) {
-      stateRef.setState({
-        message: "error getting primary key",
-        isError: false,
-        isSubmitButtonEnabled: true,
-      });
+      }
     }
   }
 
-  addSubCategoryMetaDataToFirebase(primary_key, subCategory, stateRef) {
-    console.log("adding new sub category  meta data to firebase");
+  customizeSubCatDataForUpload(primary_key, subCategory) {
     let data = {};
-    let category = subCategory["category"];
     data["name"] = subCategory["name"];
     data["category"] = subCategory["category"]["name"];
     data["categoryId"] = subCategory["category"]["id"];
@@ -45,26 +47,52 @@ class SubCategoryComponent {
     data["totalQuantity"] = parseInt(subCategory["totalQuantity"]);
     data["location"] = subCategory["dropdownSelectedLocationItem"];
     data["lastUpdatedTime"] = subCategory["currentDate"];
+    data["isPreloadedItem"] = subCategory["isPreloadedItem"];
+    data["id"] = primary_key;
+    return data;
+  }
 
-    console.log(subCategory);
-    let dateNow = new Date().toLocaleString();
-    dateNow = dateUtil.formatLocaleDateString(dateNow);
+  updateSubCategoryMetaDataToFirebase(subCategory, stateRef) {
+    let data = this.customizeSubCatDataForUpload(subCategory.id, subCategory);
+    console.log("edit data");
+    console.log(data);
+    Singleton.getDatabaseInstance()
+      .ref("/sub-categories/" + data["categoryId"] + "/" + data["id"])
+      .update(data)
+      .then(function () {
+        categoryComponent.updateCategory(
+          subCategory.category,
+          subCategory,
+          stateRef
+        );
+      })
+      .catch(function () {
+        console.log("error updating metadata to firebase");
+        stateRef.setState({
+          message: "error updating metadata to firebase",
+          isError: false,
+          isSubmitButtonEnabled: true,
+        });
+      });
+  }
+
+  addSubCategoryMetaDataToFirebase(primary_key, subCategory, stateRef) {
+    console.log("adding new sub category  meta data to firebase");
+
+    let category = subCategory["category"];
+    let data = this.customizeSubCatDataForUpload(primary_key, subCategory);
 
     Singleton.getDatabaseInstance()
       .ref("/sub-categories/" + subCategory.category.id + "/" + primary_key)
       .set(data)
       .then(function () {
-        category["totalQuantity"] =
-          category["totalQuantity"] + data["totalQuantity"];
-        category["lastUpdatedTime"] = dateNow;
-        category["totalItems"] += 1;
-        categoryComponent.updateCategory(category, stateRef);
+        categoryComponent.updateCategory(category, subCategory, stateRef);
       })
-      .catch(function () {
+      .catch(function (error) {
         console.log("error uploading metadata to firebase");
         stateRef.setState({
           message: "error uploading metadata to firebase",
-          isError: false,
+          isError: true,
           isSubmitButtonEnabled: true,
         });
       });
@@ -110,26 +138,42 @@ class SubCategoryComponent {
         isSubmitButtonEnabled: true,
       });
       return false;
-    } else if (
-      subCategory.currentDate.length == 0 ||
-      subCategory.date < new Date()
+    }
+
+    /*else if (
+      (subCategory.currentDate.length == 0 && subCategory.operation == "add") ||
+      subCategory.date.getTime() < new Date().getTime()
     ) {
       stateRef.setState({
-        message: "please pick a doe / pick a date greater",
+        message: "please pick a date / pick a date greater",
         isError: true,
         isSubmitButtonEnabled: true,
       });
       return false;
-    }
+    }*/
     return true;
   }
 
   add(subCategory, stateRef) {
     if (this.checkAddConstraints(subCategory, stateRef)) {
       if (subCategory.imageURI.length > 0) {
-        this.uploadImage(subCategory, stateRef);
+        if (
+          subCategory.operation == "edit" &&
+          !subCategory.isSubCategoryImageURIChanged
+        ) {
+          this.getPrimaryKey(subCategory, stateRef);
+        } else {
+          this.uploadImage(subCategory, stateRef);
+        }
       } else {
-        this.getPreLoadedImageURI(subCategory, stateRef);
+        if (
+          subCategory.operation == "edit" &&
+          !subCategory.isSubCategoryChanged
+        ) {
+          this.getPrimaryKey(subCategory, stateRef);
+        } else {
+          this.getPreLoadedImageURI(subCategory, stateRef);
+        }
       }
     }
   }
@@ -164,6 +208,7 @@ class SubCategoryComponent {
         () => {
           uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
             subCategory["downloadURL"] = downloadURL;
+            subCategory["isPreloadedItem"] = false;
             this.getPrimaryKey(subCategory, stateRef);
           });
         }
@@ -179,7 +224,9 @@ class SubCategoryComponent {
 
       reference.once("value").then((snapshot) => {
         subCategory["downloadURL"] = snapshot.val();
+        console.log("fetching preloaded image URI");
         subCategory["name"] = subCategory["dropdownSelectedSubCategoryItem"];
+        subCategory["isPreloadedItem"] = true;
         this.getPrimaryKey(subCategory, stateRef);
       });
     } catch (error) {
@@ -191,17 +238,16 @@ class SubCategoryComponent {
     }
   }
 
-  async edit(category, stateRef) {
-    await this.delete(category, stateRef);
-    this.add(category, stateRef);
+  edit(subCategory, stateRef) {
+    this.add(subCategory, stateRef);
   }
 
-  deleteImage(category, stateRef) {
+  deleteImage(subCategory, stateRef) {
     console.log("inside image delete");
 
     try {
       Singleton.getStorageInstance()
-        .ref(category.name)
+        .ref(subCategory.name)
         .delete()
         .then(function () {
           stateRef.setState({
@@ -211,48 +257,53 @@ class SubCategoryComponent {
         });
     } catch (error) {
       stateRef.setState({
-        message: "unsuccessfull delete",
+        message: "unsuccessfull delete of the image",
         isError: true,
       });
     }
   }
 
-  async delete(category, stateRef) {
+  async delete(subCategory, stateRef) {
     console.log("inside delete");
-
-    this.deleteImage(category, stateRef);
-    if (category.totalItems == 0) {
-      var ref = Singleton.getDatabaseInstance().ref("categories");
-      ref.once("value").then(function (snapshot) {
-        if (snapshot.exists() && snapshot.child(String(category.id)).exists()) {
-          Singleton.getDatabaseInstance()
-            .ref("categories/" + String(category.id))
-            .remove()
-            .then(() => {
-              stateRef.setState({
-                message: "successfully deleted",
-                isError: false,
-              });
-            })
-            .catch(function (error) {
-              stateRef.setState({
-                message: "cannot perform delete " + error,
-                isError: true,
-              });
-            });
-        } else {
-          stateRef.setState({
-            message: "item does not exists",
-            isError: true,
-          });
-        }
-      });
-    } else {
-      stateRef.setState({
-        message: "sub - category item exists",
-        isError: true,
-      });
+    if (!subCategory.isPreloadedItem) {
+      this.deleteImage(subCategory, stateRef);
     }
+
+    var ref = Singleton.getDatabaseInstance().ref(
+      "sub-categories/" + String(subCategory.categoryId)
+    );
+    ref.once("value").then(function (snapshot) {
+      if (
+        snapshot.exists() &&
+        snapshot.child(String(subCategory.id)).exists()
+      ) {
+        Singleton.getDatabaseInstance()
+          .ref(
+            "sub-categories/" +
+              String(subCategory.categoryId) +
+              "/" +
+              subCategory.id
+          )
+          .remove()
+          .then(() => {
+            stateRef.setState({
+              message: "successfully deleted",
+              isError: false,
+            });
+          })
+          .catch(function (error) {
+            stateRef.setState({
+              message: "cannot perform delete " + error,
+              isError: true,
+            });
+          });
+      } else {
+        stateRef.setState({
+          message: "item does not exists",
+          isError: true,
+        });
+      }
+    });
   }
 
   fetchData(categoryData, stateRef) {
@@ -272,6 +323,7 @@ class SubCategoryComponent {
               message: "component ! available/ empty category list",
               isError: true,
               subCategories: {},
+              category: categoryData,
             });
           }
         });

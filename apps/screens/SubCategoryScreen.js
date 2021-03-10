@@ -12,6 +12,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import React, { useState, useEffect } from "react";
 import categoryComponent from "../Components/CategoryComponent";
 import subCategoryComponent from "../Components/SubCategoryComponent";
+import { withTheme } from "react-native-elements";
 class SubCategoryScreen extends React.Component {
   state = {
     category: { name: "" },
@@ -40,14 +41,12 @@ class SubCategoryScreen extends React.Component {
           />
         </View>
         <View style={styles.categoryDetailsWrapper}>
-          <View style={{ height: "70%" }}>
+          <View style={{ height: "72%" }}>
             <Text style={styles.categoryDetailsNameText} numberOfLines={1}>
               {category.name}
             </Text>
             <View style={{ flexDirection: "row" }}>
-              <Text style={styles.categoryDetailsQuantityText}>
-                Total Quantity
-              </Text>
+              <Text style={styles.categoryDetailsQuantityText}>Quantity</Text>
               <Text
                 style={[
                   category.totalQuantity <= 0
@@ -58,18 +57,33 @@ class SubCategoryScreen extends React.Component {
                 {category.totalQuantity} lbs
               </Text>
             </View>
+            <View style={{ flexDirection: "row" }}>
+              <Icon name="map-marker" style={styles.categoryMarkerIcon} />
+              <Text
+                style={{
+                  marginLeft: 5,
+                  fontSize: 15,
+                  fontFamily: "AppleSDGothicNeo-Regular",
+                  textTransform: "capitalize",
+                  marginTop: 2,
+                  fontWeight: "600",
+                }}
+              >
+                {category.location}
+              </Text>
+            </View>
           </View>
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-around",
-              height: "30%",
+              height: "28%",
             }}
           >
             <Icon
               name="edit"
               onPress={() =>
-                this.props.navigation.navigate("AddCategoryScreen", {
+                this.props.navigation.navigate("AddSubCategoryScreen", {
                   data: category,
                   operation: "edit",
                 })
@@ -82,12 +96,13 @@ class SubCategoryScreen extends React.Component {
               onPress={() => {
                 console.log(category.id);
                 Alert.alert(
-                  "Delete Category",
+                  "Delete Sub Category",
                   "Are you sure you want to delete ?",
                   [
                     {
                       text: "Yes",
-                      onPress: () => categoryComponent.delete(category, this),
+                      onPress: () =>
+                        subCategoryComponent.delete(category, this),
                     },
                     { text: "No" },
                   ]
@@ -250,7 +265,7 @@ const styles = StyleSheet.create({
     elevation: 5,
 
     width: "95%",
-    height: 115,
+    height: 125,
     marginTop: 15,
     borderRadius: 10,
     flexDirection: "row",
@@ -276,7 +291,7 @@ const styles = StyleSheet.create({
   categoryDetailsNameText: {
     fontSize: 22,
     fontFamily: "AppleSDGothicNeo-Regular",
-
+    textTransform: "capitalize",
     fontWeight: "500",
   },
   categoryDetailsQuantityText: {
@@ -314,6 +329,11 @@ const styles = StyleSheet.create({
 
   categoryDetailsIcon: {
     fontSize: 30,
+    //color: "#939393",
+    color: "#900",
+  },
+  categoryMarkerIcon: {
+    fontSize: 17,
     //color: "#939393",
     color: "#900",
   },

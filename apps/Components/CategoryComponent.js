@@ -32,27 +32,43 @@ class CategoryComponent {
     }
   }
 
-  updateCategory(category, stateRef) {
-    Singleton.getDatabaseInstance()
-      .ref("/categories/" + category.id)
-      .update(category)
-      .then(function () {
-        stateRef.setState({
-          message: "successfully updated data to database",
-          isError: false,
-          isSubmitButtonEnabled: true,
-          categoryName: "",
-          imageURI: "",
+  updateCategory(category, subCategory, stateRef) {
+    try {
+      let dateNow = new Date().toLocaleString();
+      dateNow = dateUtil.formatLocaleDateString(dateNow);
+
+      Singleton.getDatabaseInstance()
+        .ref("/categories/" + category.id)
+        .once("value")
+        .then((snapshot) => {
+          let data = snapshot.val();
+          if (subCategory.operation == "add") {
+            data["totalItems"] += 1;
+          }
+          data["lastUpdatedTime"] = dateNow;
+          data["totalQuantity"] =
+            data["totalQuantity"] - subCategory.initialQuantity;
+          data["totalQuantity"] =
+            data["totalQuantity"] + parseInt(subCategory.totalQuantity);
+
+          Singleton.getDatabaseInstance()
+            .ref("/categories/" + category.id)
+            .update(data)
+            .then(() => {
+              stateRef.setState({
+                message: "successfully updated cat data",
+                isError: false,
+                isSubmitButtonEnabled: true,
+              });
+            });
         });
-      })
-      .catch(function () {
-        console.log("error updating metadata to firebase");
-        stateRef.setState({
-          message: "error updating metadata to firebase",
-          isError: false,
-          isSubmitButtonEnabled: true,
-        });
+    } catch (error) {
+      stateRef.setState({
+        message: "error updating category data",
+        isError: true,
+        isSubmitButtonEnabled: true,
       });
+    }
   }
 
   addCategoryMetaDataToFirebase(primary_key, category, stateRef) {
