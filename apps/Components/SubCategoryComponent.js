@@ -318,10 +318,10 @@ class SubCategoryComponent {
           )
           .remove()
           .then(() => {
-            stateRef.setState({
-              message: "successfully deleted",
-              isError: false,
-            });
+            subCategory["totalQuantity"] = "0";
+            console.log("iside success delete category component");
+            let category = { id: subCategory.categoryId };
+            categoryComponent.updateCategory(category, subCategory, stateRef);
           })
           .catch(function (error) {
             stateRef.setState({

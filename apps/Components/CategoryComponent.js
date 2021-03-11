@@ -36,21 +36,32 @@ class CategoryComponent {
     try {
       let dateNow = new Date().toLocaleString();
       dateNow = dateUtil.formatLocaleDateString(dateNow);
-
+      console.log("inside category update");
+      console.log(category);
       Singleton.getDatabaseInstance()
         .ref("/categories/" + category.id)
         .once("value")
         .then((snapshot) => {
           let data = snapshot.val();
-          if (subCategory.operation == "add") {
-            data["totalItems"] += 1;
+          console.log(data);
+          if (subCategory["operation"] != undefined) {
+            if (subCategory.operation == "add") {
+              data["totalItems"] += 1;
+            }
+            data["lastUpdatedTime"] = dateNow;
+            data["totalQuantity"] =
+              data["totalQuantity"] + parseInt(subCategory.totalQuantity);
+            data["totalQuantity"] =
+              data["totalQuantity"] - subCategory.initialQuantity;
+          } else {
+            data["totalItems"] -= 1;
+            data["totalQuantity"] =
+              data["totalQuantity"] - subCategory.totalQuantity;
           }
-          data["lastUpdatedTime"] = dateNow;
-          data["totalQuantity"] =
-            data["totalQuantity"] - subCategory.initialQuantity;
-          data["totalQuantity"] =
-            data["totalQuantity"] + parseInt(subCategory.totalQuantity);
 
+          console.log("inside category update foe ach sub category");
+
+          console.log(data);
           Singleton.getDatabaseInstance()
             .ref("/categories/" + category.id)
             .update(data)
@@ -242,7 +253,7 @@ class CategoryComponent {
   async delete(category, stateRef) {
     console.log("inside delete");
     console.log(category);
-    this.deleteImage(category, stateRef);
+    //this.deleteImage(category, stateRef);
     if (category.totalItems == 0) {
       var ref = Singleton.getDatabaseInstance().ref("categories");
       ref.once("value").then(function (snapshot) {
