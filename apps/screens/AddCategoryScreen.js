@@ -221,6 +221,7 @@ class AddCategoryScreen extends React.Component {
             onChangeItem={(item) => {
               this.setState({
                 dropdownSelectedItem: item.value,
+                isCategoryChanged: true,
               });
             }}
             placeholder={

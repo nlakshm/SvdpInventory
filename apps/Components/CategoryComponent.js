@@ -271,25 +271,31 @@ class CategoryComponent {
   deleteImage(category, stateRef, forwardTo) {
     console.log("inside image delete");
     console.log(category);
-    try {
-      Singleton.getStorageInstance()
-        .ref(category.imageID.toString())
-        .delete()
-        .then(() => {
-          if (forwardTo == "update") {
-            this.update(category, stateRef);
-          } else {
-            stateRef.setState({
-              message: "successfully deleted",
-              isError: false,
-            });
-          }
+    if (category.imageID == -1) {
+      if (forwardTo == "update") {
+        this.update(category, stateRef);
+      }
+    } else {
+      try {
+        Singleton.getStorageInstance()
+          .ref(category.imageID.toString())
+          .delete()
+          .then(() => {
+            if (forwardTo == "update") {
+              this.update(category, stateRef);
+            } else {
+              stateRef.setState({
+                message: "successfully deleted",
+                isError: false,
+              });
+            }
+          });
+      } catch (error) {
+        stateRef.setState({
+          message: "unsuccessfull delete",
+          isError: true,
         });
-    } catch (error) {
-      stateRef.setState({
-        message: "unsuccessfull delete",
-        isError: true,
-      });
+      }
     }
   }
 
