@@ -42,6 +42,7 @@ class AddSubCategoryScreen extends React.Component {
     isPreloadedItem: false,
     initialQuantity: 0,
     editName: "",
+    imageID: -1,
   };
 
   modifyStateBasedOnOperation = () => {
@@ -49,13 +50,15 @@ class AddSubCategoryScreen extends React.Component {
     let operation = this.props.route.params.operation;
     let stateDct = {};
     stateDct["operation"] = operation;
+    console.log("data from category screen");
+    console.log(this.props.route.params);
     if (operation == "edit") {
       let subCategory = this.props.route.params.data;
-      data = {};
-      data["id"] = subCategory.categoryId;
-      data["name"] = subCategory.category;
+      let category = {};
+      category["id"] = subCategory.categoryId;
+      category["name"] = subCategory.category;
 
-      stateDct["category"] = data;
+      stateDct["category"] = category;
       stateDct["id"] = subCategory.id;
       stateDct["dropdownSelectedLocationItem"] = subCategory.location;
       stateDct["totalQuantity"] = subCategory.totalQuantity;
@@ -64,6 +67,7 @@ class AddSubCategoryScreen extends React.Component {
       stateDct["name"] = subCategory.name;
       stateDct["isPreloadedItem"] = subCategory.isPreloadedItem;
       stateDct["initialQuantity"] = subCategory.totalQuantity;
+      stateDct["imageID"] = subCategory.imageID;
 
       if (!subCategory.isPreloadedItem) {
         stateDct["imageURI"] = subCategory.downloadURL;

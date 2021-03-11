@@ -12,11 +12,11 @@ var Singleton = (function () {
   };*/
 
   var config = {
-    apiKey: "AIzaSyBZJZFYlpOmtrlBNhh9Bj9FGWPQptMo9gA",
-    authDomain: "sample-234d4.firebaseapp.com",
-    databaseURL: "https://sample-234d4.firebaseio.com",
-    projectId: "sample-234d4",
-    storageBucket: "sample-234d4.appspot.com",
+    apiKey: "AIzaSyBM6C3yGGjZN69WbKMfygPqLO9NY35ocmE",
+    authDomain: "testproject-e7290.firebaseapp.com",
+    databaseURL: "https://testproject-e7290.firebaseio.com",
+    projectId: "testproject-e7290",
+    storageBucket: "testproject-e7290.appspot.com",
   };
 
   function createInstance() {

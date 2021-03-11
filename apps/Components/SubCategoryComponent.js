@@ -4,6 +4,7 @@ import Singleton from "../Database/FirebaseSingleton";
 import Firebase from "firebase";
 
 import categoryComponent from "../Components/CategoryComponent";
+import { ThemeProvider } from "react-native-elements";
 class SubCategoryComponent {
   constructor() {}
 
@@ -49,6 +50,7 @@ class SubCategoryComponent {
     data["lastUpdatedTime"] = subCategory["currentDate"];
     data["isPreloadedItem"] = subCategory["isPreloadedItem"];
     data["id"] = primary_key;
+    data["imageID"] = subCategory.imageID;
     return data;
   }
 
@@ -154,34 +156,44 @@ class SubCategoryComponent {
     return true;
   }
 
+  update(subCategory, stateRef) {
+    if (subCategory.imageURI.length == 0) {
+      if (subCategory.isSubCategoryChanged) {
+        this.getPreLoadedImageURI(subCategory, stateRef);
+      } else {
+        this.getPrimaryKey(subCategory, stateRef);
+      }
+    } else {
+      if (subCategory.isSubCategoryImageURIChanged) {
+        this.getImageId(subCategory, stateRef);
+      } else {
+        this.getPrimaryKey(subCategory, stateRef);
+      }
+    }
+  }
+
   add(subCategory, stateRef) {
     if (this.checkAddConstraints(subCategory, stateRef)) {
-      if (subCategory.imageURI.length > 0) {
-        if (
-          subCategory.operation == "edit" &&
-          !subCategory.isSubCategoryImageURIChanged
-        ) {
-          this.getPrimaryKey(subCategory, stateRef);
-        } else {
-          this.uploadImage(subCategory, stateRef);
-        }
-      } else {
-        if (
-          subCategory.operation == "edit" &&
-          !subCategory.isSubCategoryChanged
-        ) {
-          this.getPrimaryKey(subCategory, stateRef);
-        } else {
+      if (subCategory.operation == "add") {
+        if (subCategory.imageURI.length == 0) {
           this.getPreLoadedImageURI(subCategory, stateRef);
+        } else {
+          this.getImageId(subCategory, stateRef);
+        }
+      } else if (subCategory.operation == "edit") {
+        if (subCategory.isSubCategoryImageURIChanged) {
+          this.deleteImage(subCategory, stateRef, "update");
+        } else {
+          this.update(subCategory, stateRef);
         }
       }
     }
   }
 
-  uploadImage(subCategory, stateRef) {
+  uploadImage(imageID, subCategory, stateRef) {
     imageUtil.uriToBlob(subCategory["imageURI"]).then((file) => {
       var uploadTask = Singleton.getStorageInstance()
-        .ref(subCategory["name"])
+        .ref(imageID.toString())
         .put(file);
       uploadTask.on(
         "state_changed",
@@ -209,11 +221,35 @@ class SubCategoryComponent {
           uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
             subCategory["downloadURL"] = downloadURL;
             subCategory["isPreloadedItem"] = false;
+            subCategory["imageID"] = imageID;
             this.getPrimaryKey(subCategory, stateRef);
           });
         }
       );
     });
+  }
+
+  getImageId(subCategory, stateRef) {
+    try {
+      Singleton.getDatabaseInstance()
+        .ref("/image-primary-key")
+        .once("value")
+        .then((snapshot) => {
+          let primary_key = snapshot.val() + 1;
+          Singleton.getDatabaseInstance()
+            .ref("/image-primary-key")
+            .set(primary_key)
+            .then(() => {
+              this.uploadImage(primary_key, subCategory, stateRef);
+            });
+        });
+    } catch (error) {
+      stateRef.setState({
+        message: "error getting primary key for image",
+        isError: false,
+        isSubmitButtonEnabled: true,
+      });
+    }
   }
 
   getPreLoadedImageURI(subCategory, stateRef) {
@@ -242,18 +278,19 @@ class SubCategoryComponent {
     this.add(subCategory, stateRef);
   }
 
-  deleteImage(subCategory, stateRef) {
-    console.log("inside image delete");
+  deleteImage(subCategory, stateRef, forwardTo) {
+    console.log("inside delete Image");
 
     try {
       Singleton.getStorageInstance()
-        .ref(subCategory.name)
+        .ref(subCategory.imageID.toString())
         .delete()
-        .then(function () {
-          stateRef.setState({
-            message: "successfully deleted image file",
-            isError: false,
-          });
+        .then(() => {
+          if (forwardTo == "update") {
+            this.update(subCategory, stateRef);
+          } else if (forwardTo == "deleteSubcategoryComponent") {
+            this.deleteSubcategoryComponent(subCategory, stateRef);
+          }
         });
     } catch (error) {
       stateRef.setState({
@@ -263,12 +300,7 @@ class SubCategoryComponent {
     }
   }
 
-  async delete(subCategory, stateRef) {
-    console.log("inside delete");
-    if (!subCategory.isPreloadedItem) {
-      this.deleteImage(subCategory, stateRef);
-    }
-
+  deleteSubcategoryComponent(subCategory, stateRef) {
     var ref = Singleton.getDatabaseInstance().ref(
       "sub-categories/" + String(subCategory.categoryId)
     );
@@ -304,6 +336,15 @@ class SubCategoryComponent {
         });
       }
     });
+  }
+
+  delete(subCategory, stateRef) {
+    console.log("inside delete");
+    if (!subCategory.isPreloadedItem) {
+      this.deleteImage(subCategory, stateRef, "deleteSubcategoryComponent");
+    } else {
+      this.deleteSubcategoryComponent(subCategory, stateRef);
+    }
   }
 
   fetchData(categoryData, stateRef) {
