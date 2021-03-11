@@ -6,29 +6,33 @@ class CategoryComponent {
   constructor() {}
 
   getPrimaryKey(category, stateRef) {
-    try {
-      Singleton.getDatabaseInstance()
-        .ref("/categories-primary-key")
-        .once("value")
-        .then((snapshot) => {
-          let primary_key = snapshot.val() + 1;
-          Singleton.getDatabaseInstance()
-            .ref("/categories-primary-key")
-            .set(primary_key)
-            .then(() => {
-              this.addCategoryMetaDataToFirebase(
-                primary_key,
-                category,
-                stateRef
-              );
-            });
+    if (category.id != -1) {
+      this.addCategoryMetaDataToFirebase(category.id, category, stateRef);
+    } else {
+      try {
+        Singleton.getDatabaseInstance()
+          .ref("/categories-primary-key")
+          .once("value")
+          .then((snapshot) => {
+            let primary_key = snapshot.val() + 1;
+            Singleton.getDatabaseInstance()
+              .ref("/categories-primary-key")
+              .set(primary_key)
+              .then(() => {
+                this.addCategoryMetaDataToFirebase(
+                  primary_key,
+                  category,
+                  stateRef
+                );
+              });
+          });
+      } catch (error) {
+        stateRef.setState({
+          message: "error getting primary key",
+          isError: false,
+          isSubmitButtonEnabled: true,
         });
-    } catch (error) {
-      stateRef.setState({
-        message: "error getting primary key",
-        isError: false,
-        isSubmitButtonEnabled: true,
-      });
+      }
     }
   }
 
@@ -36,8 +40,6 @@ class CategoryComponent {
     try {
       let dateNow = new Date().toLocaleString();
       dateNow = dateUtil.formatLocaleDateString(dateNow);
-      console.log("inside category update");
-      console.log(category);
       Singleton.getDatabaseInstance()
         .ref("/categories/" + category.id)
         .once("value")
@@ -58,10 +60,6 @@ class CategoryComponent {
             data["totalQuantity"] =
               data["totalQuantity"] - subCategory.totalQuantity;
           }
-
-          console.log("inside category update foe ach sub category");
-
-          console.log(data);
           Singleton.getDatabaseInstance()
             .ref("/categories/" + category.id)
             .update(data)
@@ -82,18 +80,33 @@ class CategoryComponent {
     }
   }
 
+  getMetaData(primary_key, category) {
+    let data = {};
+    data["totalQuantity"] = 0;
+    data["lastUpdatedTime"] = "";
+    data["id"] = primary_key;
+    data["totalItems"] = 0;
+    data["downloadURL"] = category.downloadURL;
+    data["isPreloadedItem"] = category.isPreloadedItem;
+    data["imageID"] = category.imageID;
+    data["dropdown"] = category.dropdownSelectedItem;
+    data["name"] = category.categoryName;
+
+    return data;
+  }
+
+  edit(category, stateRef) {
+    this.add(category, stateRef);
+  }
+
   addCategoryMetaDataToFirebase(primary_key, category, stateRef) {
     console.log("adding new category meta data to firebase");
-    category["totalQuantity"] = 0;
-    category["lastUpdatedTime"] = "";
-    category["id"] = primary_key;
-    category["totalItems"] = 0;
+    let data = this.getMetaData(primary_key, category);
 
     Singleton.getDatabaseInstance()
       .ref("/categories/" + primary_key)
-      .set(category)
+      .set(data)
       .then(function () {
-        console.log("successfully uploaded");
         stateRef.setState({
           message: "successfully uploaded data to database",
           isError: false,
@@ -103,7 +116,6 @@ class CategoryComponent {
         });
       })
       .catch(function () {
-        console.log("error uploading metadata to firebase");
         stateRef.setState({
           message: "error uploading metadata to firebase",
           isError: false,
@@ -112,7 +124,6 @@ class CategoryComponent {
       });
   }
   checkAddConstraints(category, stateRef) {
-    console.log(category);
     let imageURILength = category.imageURI.length;
     let dropdownSelectedItemLength = category.dropdownSelectedItem.length;
     let trimmedName = category.categoryName.trim();
@@ -142,17 +153,39 @@ class CategoryComponent {
     return true;
   }
 
-  uploadImage(category, stateRef) {
+  getImageId(category, stateRef) {
+    try {
+      Singleton.getDatabaseInstance()
+        .ref("/image-primary-key")
+        .once("value")
+        .then((snapshot) => {
+          let primary_key = snapshot.val() + 1;
+          Singleton.getDatabaseInstance()
+            .ref("/image-primary-key")
+            .set(primary_key)
+            .then(() => {
+              this.uploadImage(primary_key, category, stateRef);
+            });
+        });
+    } catch (error) {
+      stateRef.setState({
+        message: "error getting primary key for image",
+        isError: false,
+        isSubmitButtonEnabled: true,
+      });
+    }
+  }
+
+  uploadImage(imageID, category, stateRef) {
     imageUtil.uriToBlob(category.imageURI).then((file) => {
       var uploadTask = Singleton.getStorageInstance()
-        .ref(category.categoryName)
+        .ref(imageID.toString())
         .put(file);
       uploadTask.on(
         "state_changed",
         (snapshot) => {
           var progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log("Upload is " + progress + "% done");
           switch (snapshot.state) {
             case Firebase.storage.TaskState.RUNNING:
               stateRef.setState({
@@ -172,14 +205,9 @@ class CategoryComponent {
         () => {
           uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
             category["downloadURL"] = downloadURL;
-            this.getPrimaryKey(
-              {
-                name: category.categoryName,
-                downloadURL: category.downloadURL,
-                dropdown: "",
-              },
-              stateRef
-            );
+            category["isPreloadedItem"] = false;
+            category["imageID"] = imageID;
+            this.getPrimaryKey(category, stateRef);
           });
         }
       );
@@ -193,16 +221,8 @@ class CategoryComponent {
         .once("value")
         .then((snapshot) => {
           category["downloadURL"] = snapshot.val();
-
-          this.getPrimaryKey(
-            {
-              name: category.categoryName,
-              downloadURL: category.downloadURL,
-              dropdown: category.dropdownSelectedItem,
-            },
-            stateRef
-          );
-          console.log(category);
+          category["isPreloadedItem"] = true;
+          this.getPrimaryKey(category, stateRef);
         });
     } catch (error) {
       stateRef.setState({
@@ -214,35 +234,58 @@ class CategoryComponent {
   }
 
   add(category, stateRef) {
+    console.log(category);
     if (this.checkAddConstraints(category, stateRef)) {
-      if (category.imageURI.length > 0) {
-        this.uploadImage(category, stateRef);
-      } else {
-        this.getPreLoadedImageURI(category, stateRef);
+      if (category.operation == "add") {
+        if (category.imageURI.length > 0) {
+          this.getImageId(category, stateRef);
+        } else {
+          this.getPreLoadedImageURI(category, stateRef);
+        }
+      } else if (category.operation == "edit") {
+        if (category.isCategoryImageURIChanged) {
+          this.deleteImage(category, stateRef, "update");
+        } else {
+          this.update(category, stateRef);
+        }
       }
     }
   }
 
-  async edit(category, stateRef) {
-    await this.delete(category, stateRef);
-    this.add(category, stateRef);
+  update(category, stateRef) {
+    if (category.imageURI.length == 0) {
+      if (category.isCategoryChanged) {
+        this.getPreLoadedImageURI(category, stateRef);
+      } else {
+        this.getPrimaryKey(category, stateRef);
+      }
+    } else {
+      if (category.isCategoryImageURIChanged) {
+        this.getImageId(category, stateRef);
+      } else {
+        this.getPrimaryKey(category, stateRef);
+      }
+    }
   }
 
-  deleteImage(category, stateRef) {
+  deleteImage(category, stateRef, forwardTo) {
     console.log("inside image delete");
     console.log(category);
     try {
       Singleton.getStorageInstance()
-        .ref(category.name)
+        .ref(category.imageID.toString())
         .delete()
-        .then(function () {
-          stateRef.setState({
-            message: "successfully deleted image file",
-            isError: false,
-          });
+        .then(() => {
+          if (forwardTo == "update") {
+            this.update(category, stateRef);
+          } else {
+            stateRef.setState({
+              message: "successfully deleted",
+              isError: false,
+            });
+          }
         });
     } catch (error) {
-      console.log(error);
       stateRef.setState({
         message: "unsuccessfull delete",
         isError: true,
@@ -250,22 +293,24 @@ class CategoryComponent {
     }
   }
 
-  async delete(category, stateRef) {
-    console.log("inside delete");
-    console.log(category);
-    //this.deleteImage(category, stateRef);
+  delete(category, stateRef) {
     if (category.totalItems == 0) {
       var ref = Singleton.getDatabaseInstance().ref("categories");
-      ref.once("value").then(function (snapshot) {
+      ref.once("value").then((snapshot) => {
         if (snapshot.exists() && snapshot.child(String(category.id)).exists()) {
           Singleton.getDatabaseInstance()
             .ref("categories/" + String(category.id))
             .remove()
             .then(() => {
-              stateRef.setState({
-                message: "successfully deleted",
-                isError: false,
-              });
+              if (!category.isPreloadedItem) {
+                console.log("after successful delete of the cat component");
+                this.deleteImage(category, stateRef, "print-result");
+              } else {
+                stateRef.setState({
+                  message: "successfully deleted ",
+                  isError: false,
+                });
+              }
             })
             .catch(function (error) {
               stateRef.setState({

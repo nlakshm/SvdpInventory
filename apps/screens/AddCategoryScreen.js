@@ -26,23 +26,32 @@ class AddCategoryScreen extends React.Component {
     isSubmitButtonEnabled: true,
     operation: "",
     id: -1,
+    isPreloadedItem: false,
+    imageID: -1,
+    isCategoryImageURIChanged: false,
+    isCategoryChanged: false,
+    downloadURL: "",
   };
 
   modifyStateBasedOnOperation = () => {
     console.log("modify based on state");
     let operation = this.props.route.params.operation;
     let stateDct = {};
+
     if (operation == "edit") {
       let data = this.props.route.params.data;
       stateDct["categoryName"] = data.name;
-
       stateDct["id"] = data.id;
-      stateDct["dropdownSelectedItem"] = data.dropdown;
-      if (data.dropdown.length == 0) {
+      stateDct["imageID"] = data.imageID;
+      stateDct["isPreloadedItem"] = data.isPreloadedItem;
+      if (!data.isPreloadedItem) {
         stateDct["imageURI"] = data.downloadURL;
+      } else {
+        stateDct["dropdownSelectedItem"] = data.dropdown;
       }
     }
     stateDct["operation"] = operation;
+    console.log(stateDct);
     this.setState(stateDct);
   };
 
@@ -69,7 +78,7 @@ class AddCategoryScreen extends React.Component {
   };
 
   deletePickedImage = () => {
-    this.setState({ imageURI: "" });
+    this.setState({ imageURI: "", isCategoryImageURIChanged: true });
   };
 
   pickImage = async () => {
@@ -81,7 +90,7 @@ class AddCategoryScreen extends React.Component {
     });
 
     if (!result.cancelled) {
-      this.setState({ imageURI: result.uri });
+      this.setState({ imageURI: result.uri, isCategoryImageURIChanged: true });
     }
   };
 
@@ -89,14 +98,10 @@ class AddCategoryScreen extends React.Component {
     console.log("submiting form edit/add");
     if (this.state.isSubmitButtonEnabled) {
       this.setState({ isSubmitButtonEnabled: false });
-      console.log(this.state);
       if (this.state.operation == "add") {
         categoryComponent.add(this.state, this);
-      } else {
-        console.log("edit option enabled");
-        console.log("edit option for id" + this.state);
-        let z = Object.assign({}, this.state, this.props.route.params.data);
-        categoryComponent.edit(z, this);
+      } else if (this.state.operation == "edit") {
+        categoryComponent.edit(this.state, this);
       }
     }
   };
@@ -105,7 +110,7 @@ class AddCategoryScreen extends React.Component {
   };
 
   handleDropDownText(event) {
-    this.setState({ value: event.target.value });
+    this.setState({ value: event.target.value, isCategoryChanged: true });
   }
   handleReset = () => {
     this.setState({
@@ -147,7 +152,6 @@ class AddCategoryScreen extends React.Component {
 
   render() {
     console.log("state after mount");
-    console.log(this.state);
     return (
       <SafeAreaView style={styles.categoryScreenWrapper}>
         <View style={styles.categoryHeaderWrapper}>
