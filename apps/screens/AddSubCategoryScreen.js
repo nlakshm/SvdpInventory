@@ -75,7 +75,6 @@ class AddSubCategoryScreen extends React.Component {
       } else {
         stateDct["dropdownSelectedSubCategoryItem"] = subCategory.name;
       }
-
       stateDct["operation"] = operation;
     } else if (operation == "add") {
       stateDct["category"] = this.props.route.params.category;
@@ -108,7 +107,11 @@ class AddSubCategoryScreen extends React.Component {
   };
 
   deletePickedImage = () => {
-    this.setState({ imageURI: "", subCategoryName: "" });
+    this.setState({
+      imageURI: "",
+      subCategoryName: "",
+      isSubCategoryImageURIChanged: true,
+    });
   };
 
   pickImage = async () => {
@@ -227,7 +230,11 @@ class AddSubCategoryScreen extends React.Component {
           <View style={styles.categoryHeaderIconWrapper}>
             <Icon
               name="arrow-left"
-              onPress={() => this.props.navigation.navigate("Home")}
+              onPress={() =>
+                this.props.navigation.navigate("SubCategoryScreen", {
+                  data: this.state.category,
+                })
+              }
               style={styles.categoryHeaderIcon}
             />
           </View>

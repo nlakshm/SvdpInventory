@@ -175,6 +175,11 @@ class SubCategoryScreen extends React.Component {
       <SafeAreaView style={styles.categoryScreenWrapper}>
         <View style={styles.categoryHeaderWrapper}>
           <View style={styles.categoryHeaderTextWrapper}>
+            <Icon
+              name="arrow-left"
+              onPress={() => this.props.navigation.navigate("Home")}
+              style={styles.categoryHeaderIcon}
+            />
             <Text style={styles.categoryHeaderText}>
               {this.state.category.name}
             </Text>
@@ -229,14 +234,14 @@ const styles = StyleSheet.create({
     color: "white",
     backgroundColor: "#EF6465",
     width: "90%",
-    height: "6%",
-    justifyContent: "center",
+    height: 45,
     flexDirection: "row",
     alignItems: "center",
   },
 
   categoryHeaderTextWrapper: {
     width: "60%",
+    flexDirection: "row",
   },
 
   categoryHeaderText: {
@@ -244,7 +249,8 @@ const styles = StyleSheet.create({
     fontSize: 25,
     color: "white",
     fontWeight: "700",
-    marginLeft: 10,
+    marginLeft: 15,
+    marginTop: 2,
   },
 
   categoryHeaderIconWrapper: {
